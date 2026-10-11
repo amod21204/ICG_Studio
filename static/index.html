@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compiler Construction Studio | ICG & Optimizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="logo-icon">⚡</div>
+                <div>
+                    <h1>Compiler Construction Studio</h1>
+                    <span class="subtitle">End-to-End Compiler Pipeline & Multi-Pass Optimizer</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <div class="preset-selector">
+                    <label for="code-presets">Example:</label>
+                    <select id="code-presets">
+                        <option value="arithmetic">1. Arithmetic Precedence</option>
+                        <option value="parentheses">2. Parentheses Expressions</option>
+                        <option value="if_else" selected>3. If-Else Control Flow</option>
+                        <option value="while_loop">4. While Loop</option>
+                        <option value="optimization">5. Algebraic & Constant Optimization</option>
+                        <option value="complex">6. Complex (If-Else + While)</option>
+                    </select>
+                </div>
+
+                <button id="compile-btn" class="btn btn-primary">
+                    <span class="btn-icon">▶</span>
+                    <span>Compile & Optimize</span>
+                    <span class="kbd-shortcut">Ctrl+Enter</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Interactive Compiler Pipeline Flow Bar -->
+        <div class="pipeline-bar" id="pipeline-bar">
+            <div class="pipeline-step" data-target="tab-tokens">
+                <span class="step-num">1</span>
+                <span class="step-name">LEXER</span>
+                <span class="step-status" id="status-lexer">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-ast">
+                <span class="step-num">2</span>
+                <span class="step-name">PARSER</span>
+                <span class="step-status" id="status-parser">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-ast">
+                <span class="step-num">3</span>
+                <span class="step-name">AST</span>
+                <span class="step-status" id="status-ast">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-tac">
+                <span class="step-num">4</span>
+                <span class="step-name">TAC</span>
+                <span class="step-status" id="status-tac">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-quads">
+                <span class="step-num">5</span>
+                <span class="step-name">QUADRUPLES</span>
+                <span class="step-status" id="status-quads">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-quads">
+                <span class="step-num">6</span>
+                <span class="step-name">TRIPLES</span>
+                <span class="step-status" id="status-triples">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-cfg">
+                <span class="step-num">7</span>
+                <span class="step-name">BASIC BLOCKS</span>
+                <span class="step-status" id="status-blocks">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-cfg">
+                <span class="step-num">8</span>
+                <span class="step-name">CFG</span>
+                <span class="step-status" id="status-cfg">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-tac">
+                <span class="step-num">9</span>
+                <span class="step-name">OPTIMIZER</span>
+                <span class="step-status" id="status-opt">✓ Completed</span>
+            </div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" data-target="tab-target">
+                <span class="step-num">10</span>
+                <span class="step-name">TARGET CODE</span>
+                <span class="step-status" id="status-target">✓ Completed</span>
+            </div>
+        </div>
+
+        <!-- Optimization Configuration Strip -->
+        <div class="opt-strip">
+            <span class="opt-strip-title">Optimizer Passes:</span>
+            <label class="checkbox-pill">
+                <input type="checkbox" id="opt-const-prop" value="constant_propagation" checked>
+                <span>Constant Propagation</span>
+            </label>
+            <label class="checkbox-pill">
+                <input type="checkbox" id="opt-const-fold" value="constant_folding" checked>
+                <span>Constant Folding</span>
+            </label>
+            <label class="checkbox-pill">
+                <input type="checkbox" id="opt-alg-simp" value="algebraic_simplification" checked>
+                <span>Algebraic Identities</span>
+            </label>
+            <label class="checkbox-pill">
+                <input type="checkbox" id="opt-cse" value="common_subexpression" checked>
+                <span>Common Subexpression (CSE)</span>
+            </label>
+            <label class="checkbox-pill">
+                <input type="checkbox" id="opt-dce" value="dead_code_elimination" checked>
+                <span>Dead Code Elimination (DCE)</span>
+            </label>
+        </div>
+
+        <!-- Main Workbench Layout -->
+        <main class="workbench">
+            <!-- Left Side: Source Code Editor -->
+            <section class="panel editor-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                        <span class="title-text">Source Program (C-Style)</span>
+                    </div>
+                    <div class="editor-meta">
+                        <span id="line-count">Lines: 11</span>
+                    </div>
+                </div>
+
+                <!-- Error Notification Banner -->
+                <div id="error-banner" class="error-banner" style="display: none;">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-text" id="error-message"></div>
+                    <button class="error-close" onclick="dismissError()">×</button>
+                </div>
+
+                <div class="editor-container">
+                    <div class="line-numbers" id="line-numbers"></div>
+                    <textarea id="code-editor" spellcheck="false" placeholder="Enter source code here..."></textarea>
+                </div>
+
+                <div class="panel-footer">
+                    <div class="status-indicator">
+                        <span class="status-dot ready" id="status-dot"></span>
+                        <span id="status-text">Ready</span>
+                    </div>
+                    <div class="editor-actions">
+                        <button class="btn btn-sm btn-ghost" id="clear-code-btn">Clear</button>
+                        <button class="btn btn-sm btn-ghost" id="reset-code-btn">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Comprehensive Compiler Stats Panel -->
+                <div class="stats-footer-card">
+                    <div class="stats-header">📊 Dynamic Compiler Statistics</div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><span class="stat-lbl">Tokens:</span> <strong id="stat-tokens">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">AST Nodes:</span> <strong id="stat-ast">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">TAC Lines:</span> <strong id="stat-tac">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Temporaries:</span> <strong id="stat-temps">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Quadruples:</span> <strong id="stat-quads">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Triples:</span> <strong id="stat-triples">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Basic Blocks:</span> <strong id="stat-blocks">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Optimized Lines:</span> <strong id="stat-opt-lines">0</strong></div>
+                        <div class="stat-item"><span class="stat-lbl">Lines Removed:</span> <strong id="stat-removed" style="color: var(--accent-green);">0</strong></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Multi-Phase Output Tabs -->
+            <section class="panel output-panel">
+                <nav class="tabs-nav">
+                    <button class="tab-btn active" data-tab="tab-tac">
+                        <span>⚡ Three-Address Code (TAC)</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-opt-report">
+                        <span>📉 Optimization Report</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-target">
+                        <span>💻 Target Code (Assembly)</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-quads">
+                        <span>📊 Quadruples & Triples</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-ast">
+                        <span>🌳 AST Visualizer</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-cfg">
+                        <span>🔀 Control Flow Graph (CFG)</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-tokens">
+                        <span>🏷️ Lexical Tokens</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-exec">
+                        <span>▶️ Execution & Memory</span>
+                    </button>
+                    <button class="tab-btn" data-tab="tab-about">
+                        <span>👥 Developers</span>
+                    </button>
+                </nav>
+
+                <div class="tab-content-container">
+                    <!-- Tab 1: TAC with "Why This Instruction?" Feature -->
+                    <div class="tab-pane active" id="tab-tac">
+                        <div class="tac-comparison-grid">
+                            <div class="code-box">
+                                <div class="box-header">
+                                    <span>Original Unoptimized TAC</span>
+                                    <button class="copy-btn" onclick="copyText('unopt-tac-code')">Copy</button>
+                                </div>
+                                <pre id="unopt-tac-code" class="code-display"></pre>
+                            </div>
+
+                            <div class="code-box">
+                                <div class="box-header">
+                                    <span>Optimized TAC</span>
+                                    <button class="copy-btn" onclick="copyText('opt-tac-code')">Copy</button>
+                                </div>
+                                <pre id="opt-tac-code" class="code-display highlight-box"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Dedicated "Why This Instruction?" Section -->
+                        <div class="log-box">
+                            <div class="box-header">
+                                <span>💡 "Why This Instruction?" — Pedagogical Breakdown</span>
+                                <span class="badge" id="why-count-badge">0 instructions</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="why-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">#</th>
+                                            <th style="width: 240px;">Instruction</th>
+                                            <th>Why Does This Instruction Exist?</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="3" class="empty-cell">Compile code to inspect instruction rationale</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Optimization Report & Pass Comparison -->
+                    <div class="tab-pane" id="tab-opt-report">
+                        <div class="metrics-bar">
+                            <div class="metric-card">
+                                <span class="metric-label">Instructions Before</span>
+                                <span class="metric-val" id="count-unopt">0</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Instructions After</span>
+                                <span class="metric-val highlight" id="count-opt">0</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Instructions Removed</span>
+                                <span class="metric-val green" id="diff-count">0</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Percentage Reduction</span>
+                                <span class="metric-val green" id="reduction-pct">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="log-box">
+                            <div class="box-header">
+                                <span>Active Passes Verified in this Compilation</span>
+                            </div>
+                            <div class="passes-badges-bar" id="passes-applied-container">
+                                <span class="badge-empty">No optimizations applied yet</span>
+                            </div>
+                        </div>
+
+                        <div class="log-box">
+                            <div class="box-header">
+                                <span>Step-by-Step Optimization Transformations Log</span>
+                                <span class="badge" id="log-count-badge">0 transforms</span>
+                            </div>
+                            <div id="optimization-logs" class="logs-container">
+                                <div class="empty-state">No transformations logged</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Dedicated Target-like Code Tab -->
+                    <div class="tab-pane" id="tab-target">
+                        <div class="code-box">
+                            <div class="box-header">
+                                <span>Educational Target Pseudo-Assembly (MOV, ADD, SUB, MUL, DIV, MOD, CMP, JMP, Branches)</span>
+                                <button class="copy-btn" onclick="copyText('target-code-display')">Copy Assembly</button>
+                            </div>
+                            <pre id="target-code-display" class="code-display" style="min-height: 400px; color: #a5f3fc;"></pre>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Quadruples & Triples -->
+                    <div class="tab-pane" id="tab-quads">
+                        <div class="sub-tab-bar">
+                            <button class="sub-tab-btn active" data-sub="sub-quads">Quadruples Table (Op, Arg1, Arg2, Result)</button>
+                            <button class="sub-tab-btn" data-sub="sub-triples">Triples Table (Index, Op, Arg1, Arg2)</button>
+                        </div>
+
+                        <div id="sub-quads" class="sub-pane active">
+                            <div class="table-responsive">
+                                <table class="data-table" id="quadruples-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Operator (Op)</th>
+                                            <th>Argument 1</th>
+                                            <th>Argument 2</th>
+                                            <th>Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="5" class="empty-cell">No quadruples generated</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="sub-triples" class="sub-pane">
+                            <div class="table-responsive">
+                                <table class="data-table" id="triples-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Index</th>
+                                            <th>Operator (Op)</th>
+                                            <th>Argument 1</th>
+                                            <th>Argument 2</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="4" class="empty-cell">No triples generated</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 5: AST Visualizer -->
+                    <div class="tab-pane" id="tab-ast">
+                        <div class="ast-controls">
+                            <span>Hierarchical Abstract Syntax Tree (AST)</span>
+                            <div class="ast-legend">
+                                <span class="legend-item"><span class="legend-color type-program"></span> Program</span>
+                                <span class="legend-item"><span class="legend-color type-assign"></span> Assignment</span>
+                                <span class="legend-item"><span class="legend-color type-if"></span> If / While</span>
+                                <span class="legend-item"><span class="legend-color type-binop"></span> BinOp</span>
+                                <span class="legend-item"><span class="legend-color type-id"></span> Identifier</span>
+                                <span class="legend-item"><span class="legend-color type-num"></span> Number</span>
+                            </div>
+                        </div>
+                        <div class="ast-canvas-container" id="ast-container">
+                            <div class="empty-state">Compile to generate the Abstract Syntax Tree</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 6: Control Flow Graph (CFG) with SVG -->
+                    <div class="tab-pane" id="tab-cfg">
+                        <div class="cfg-header">
+                            <span>Basic Blocks & Directed Control Flow Graph (CFG)</span>
+                            <span class="badge" id="cfg-blocks-badge">0 blocks</span>
+                        </div>
+                        <div class="cfg-visual-wrapper" id="cfg-container">
+                            <div class="empty-state">Compile code to view Control Flow Graph</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 7: Tokens Table -->
+                    <div class="tab-pane" id="tab-tokens">
+                        <div class="tokens-filter-bar">
+                            <input type="text" id="token-search" placeholder="Filter tokens by lexeme or type (e.g. ID, NUMBER, RELOP)...">
+                            <span class="badge" id="token-count-badge">0 tokens</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="tokens-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Token Type</th>
+                                        <th>Lexeme</th>
+                                        <th>Line</th>
+                                        <th>Column</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="5" class="empty-cell">Compile to view Lexical Tokens</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab 8: Execution & Memory Store -->
+                    <div class="tab-pane" id="tab-exec">
+                        <div class="exec-layout">
+                            <div class="exec-section">
+                                <div class="box-header">
+                                    <span>Program Variable Memory Store (Final State)</span>
+                                </div>
+                                <div class="variable-cards-grid" id="variables-grid">
+                                    <div class="empty-state">No execution results yet</div>
+                                </div>
+                            </div>
+
+                            <div class="exec-section">
+                                <div class="box-header">
+                                    <span>Step-by-Step Instruction Execution Trace</span>
+                                </div>
+                                <div class="trace-container" id="trace-container">
+                                    <div class="empty-state">Run compilation to execute TAC instructions</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 9: Developers Section -->
+                    <div class="tab-pane" id="tab-about">
+                        <div class="dev-section-container">
+                            <div class="dev-header">
+                                <h2>Compiler Construction Mini-Project</h2>
+                                <p>Designed and developed for academic compiler engineering demonstrations.</p>
+                            </div>
+
+                            <div class="dev-cards-grid">
+                                <div class="dev-card">
+                                    <div class="dev-avatar">AP</div>
+                                    <h3 class="dev-name">Amod Pathak</h3>
+                                    <div class="dev-role">Compiler Logic & Full-Stack Development</div>
+                                    <div class="dev-responsibilities">
+                                        <h4>Core Responsibilities:</h4>
+                                        <ul>
+                                            <li>Intermediate Code Generation (TAC, Quadruples, Triples)</li>
+                                            <li>Parser & Compiler Logic (LL1 / Pratt grammar)</li>
+                                            <li>Multi-Pass Optimization Engine (Constant Folding, Propagation, CSE, DCE)</li>
+                                            <li>Standard-library Python Backend Integration</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="dev-card">
+                                    <div class="dev-avatar">UK</div>
+                                    <h3 class="dev-name">Utkarsh Kuchankar</h3>
+                                    <div class="dev-role">Frontend & System Development</div>
+                                    <div class="dev-responsibilities">
+                                        <h4>Core Responsibilities:</h4>
+                                        <ul>
+                                            <li>Interactive Developer Dashboard & UI Architecture</li>
+                                            <li>Hierarchical AST Visualizer & Directed CFG Rendering</li>
+                                            <li>Frontend API Integration & State Management</li>
+                                            <li>System Validation, Test Scenarios & Presentation</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tech-specs-card">
+                                <h3>Technical Stack Specifications</h3>
+                                <div class="tech-tags">
+                                    <span class="tech-tag">HTML5</span>
+                                    <span class="tech-tag">CSS3</span>
+                                    <span class="tech-tag">Vanilla JavaScript (ES6+)</span>
+                                    <span class="tech-tag">Python 3 (Standard Library)</span>
+                                    <span class="tech-tag">Zero External Dependencies</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
